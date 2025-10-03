@@ -3,8 +3,6 @@ import sys
 
 pygame.init()
 
-abs = 'asb'
-
 # 기본 설정
 WIDTH, HEIGHT = 800, 600
 FPS = 60
