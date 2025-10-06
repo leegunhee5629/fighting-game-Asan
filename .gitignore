@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+.env
+.env.*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Logs / temp
+*.log
+logs/
+*.tmp
+*.bak
+
+# Pygame assets cache (if any build step creates compiled data)
+*.ogv
+*.db
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+
+# Coverage / test
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Misc
+*.orig
