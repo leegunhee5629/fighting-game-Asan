@@ -1,15 +1,7 @@
 import pygame
-import sys
 
-pygame.mixer.init()
-pygame.mixer.music.load("assets/bgm/Coldplay_Viva_La_Vida.mp3")
-pygame.mixer.music.set_volume(0.5)
-
-def title(screen):
-  pygame.display.set_caption("Bounce Attack (REMASTERED) - Title Scene")
-
-  if not pygame.mixer.music.get_busy():
-    pygame.mixer.music.play(0)
+def title(screen, current_scene):
+  pygame.display.set_caption("Bounce Attack (REMASTERED)")
 
   background = pygame.image.load("assets/img/background.png")
   background = pygame.transform.scale(background, (screen.get_width(), screen.get_height()))
@@ -38,12 +30,10 @@ def title(screen):
 
   for event in pygame.event.get():
     if event.type == pygame.QUIT:
-      pygame.mixer.music.stop()
       return None
       
     if event.type == pygame.MOUSEBUTTONDOWN:
       if button_rect.collidepoint(event.pos):
-        pygame.mixer.music.stop()
         return "Characters"
 
   return "Title"
