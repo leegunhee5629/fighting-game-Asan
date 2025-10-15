@@ -1,57 +1,92 @@
 import pygame
-from scenes.characters import character_config
+from scenes.characters import character_config  # 캐릭터 선택 정보를 불러옵니다.
 
-class Player:
-    def __init__(self, codename, x, y, controls):
-        self.codename = codename
-        self.x = x
-        self.y = y
-        self.speed = 5
-        self.controls = controls
-        self.image = pygame.image.load(f"assets/characters/{codename}/body.png")
-        self.image = pygame.transform.scale(self.image, (100, 100))
-        self.rect = self.image.get_rect(center=(self.x, self.y))
-
-    def handle_input(self, keys):
-        if keys[self.controls['left']]:
-            self.x -= self.speed
-        if keys[self.controls['right']]:
-            self.x += self.speed
-        if keys[self.controls['up']]:
-            self.y -= self.speed
-        if keys[self.controls['down']]:
-            self.y += self.speed
-        self.rect.center = (self.x, self.y)
-
-    def draw(self, screen):
-        screen.blit(self.image, self.rect)
-
-def gameplay(screen, background_img):
-    # 배경 그리기
-    background = pygame.image.load(background_img)
+def gameplay(screen, map_image_path):
+    pygame.display.set_caption("Bounce Attack (REMASTERED) - Gameplay")
+    background = pygame.image.load(map_image_path)
     background = pygame.transform.scale(background, (screen.get_width(), screen.get_height()))
-    screen.blit(background, (0, 0))
 
-    # 캐릭터 선택 정보 가져오기
-    p1_code = character_config["selected_1p"] or "leesaengseon"
-    p2_code = character_config["selected_2p"] or "haegol"
+    # 캐릭터 이미지 불러오기
+    p1_img = pygame.image.load(f"assets/characters/{character_config['selected_1p']}/body.png").convert_alpha()
+    p2_img = pygame.image.load(f"assets/characters/{character_config['selected_2p']}/body.png").convert_alpha()
+    p1_img = pygame.transform.scale(p1_img, (200, 200))
+    p2_img = pygame.transform.scale(p2_img, (200, 200))
 
-    # 플레이어 객체 생성 (최초 1회만)
-    if not hasattr(gameplay, "players"):
-        gameplay.players = [
-            Player(p1_code, 300, 500, {'left': pygame.K_a, 'right': pygame.K_d, 'up': pygame.K_w, 'down': pygame.K_s}),
-            Player(p2_code, 800, 500, {'left': pygame.K_LEFT, 'right': pygame.K_RIGHT, 'up': pygame.K_UP, 'down': pygame.K_DOWN}),
-        ]
+    # 캐릭터 초기 위치 및 속도
+    p1 = {"x": 200, "y": 500, "vx": 0, "vy": 0, "on_ground": True}
+    p2 = {"x": 800, "y": 500, "vx": 0, "vy": 0, "on_ground": True}
+    speed = 6
+    jump_power = -18
+    gravity = 1
 
-    keys = pygame.key.get_pressed()
-    for player in gameplay.players:
-        player.handle_input(keys)
-        player.draw(screen)
+    running = True
+    clock = pygame.time.Clock()
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            return None
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            return "Title"
+    while running:
+        screen.blit(background, (0, 0))
 
-    return "swimming_pool"  # 맵 이름에 따라 다르게 반환 가능
+        keys = pygame.key.get_pressed()
+
+        # 1P 이동
+        if keys[pygame.K_a]:
+            p1["vx"] = -speed
+        elif keys[pygame.K_d]:
+            p1["vx"] = speed
+        else:
+            p1["vx"] = 0
+
+        if keys[pygame.K_w] and p1["on_ground"]:
+            p1["vy"] = jump_power
+            p1["on_ground"] = False
+
+        # 2P 이동
+        if keys[pygame.K_LEFT]:
+            p2["vx"] = -speed
+        elif keys[pygame.K_RIGHT]:
+            p2["vx"] = speed
+        else:
+            p2["vx"] = 0
+
+        if keys[pygame.K_UP] and p2["on_ground"]:
+            p2["vy"] = jump_power
+            p2["on_ground"] = False
+
+        # 1P 기술
+        if keys[pygame.K_e]:
+            pass
+        if keys[pygame.K_r]:
+            pass
+        if keys[pygame.K_s]:
+            pass
+
+        # 2P 기술
+        if keys[pygame.K_RETURN]:
+            pass
+        if keys[pygame.K_RSHIFT] or keys[pygame.K_LSHIFT]:
+            pass
+        if keys[pygame.K_DOWN]:
+            pass
+
+        # 캐릭터 위치 업데이트 (중력 적용)
+        for p in [p1, p2]:
+            p["x"] += p["vx"]
+            p["y"] += p["vy"]
+            if not p["on_ground"]:
+                p["vy"] += gravity
+            if p["y"] >= 500:
+                p["y"] = 500
+                p["vy"] = 0
+                p["on_ground"] = True
+
+        # 캐릭터 이미지 그리기
+        screen.blit(p1_img, (int(p1["x"]), int(p1["y"])))
+        screen.blit(p2_img, (int(p2["x"]), int(p2["y"])))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return None
+
+        pygame.display.update()
+        clock.tick(60)
+
+    return "Title"
