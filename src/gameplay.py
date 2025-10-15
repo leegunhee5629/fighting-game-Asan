@@ -13,8 +13,8 @@ def gameplay(screen, map_image_path):
     p2_img = pygame.transform.scale(p2_img, (200, 200))
 
     # 캐릭터 초기 위치 및 속도
-    p1 = {"x": 200, "y": 500, "vx": 0, "vy": 0, "on_ground": True}
-    p2 = {"x": 800, "y": 500, "vx": 0, "vy": 0, "on_ground": True}
+    p1 = {"x": 100, "y": 500, "vx": 0, "vy": 0, "on_ground": True}
+    p2 = {"x": 1260, "y": 500, "vx": 0, "vy": 0, "on_ground": True}
     speed = 6
     jump_power = -18
     gravity = 1
@@ -77,6 +77,14 @@ def gameplay(screen, map_image_path):
                 p["y"] = 500
                 p["vy"] = 0
                 p["on_ground"] = True
+                
+            # 벽에 닿으면 튕기기
+            if p["x"] <= 0:
+                p["x"] = 0
+                p["vx"] = abs(p["vx"])
+            elif p["x"] >= screen.get_width() - 200:  # 200은 캐릭터 이미지 크기
+                p["x"] = screen.get_width() - 200
+                p["vx"] = -abs(p["vx"])
 
         # 캐릭터 이미지 그리기
         screen.blit(p1_img, (int(p1["x"]), int(p1["y"])))
