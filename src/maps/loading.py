@@ -14,7 +14,7 @@ def map_loading(screen, current_map):
 
   if start_time is None:
     start_time = pygame.time.get_ticks()
-    end_time = start_time + 12000
+    end_time = start_time + 5000
 
   remaining = (end_time - pygame.time.get_ticks()) / 1000
 
