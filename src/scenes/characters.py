@@ -10,6 +10,57 @@ character_config = {
   "selected_1p": None,
   "selected_2p": None,
 }
+# 스킬 함수들 정의
+def leesaengseon_skill1(p1, p2, skill_state):
+  pass
+def leesaengseon_skill2(p1, p2, skill_state):
+  pass
+def leesaengseon_ultimate(p1, p2, skill_state):
+  pass
+
+def haegol_skill1(p1, p2, skill_state, bones, owner):
+  current_time = pygame.time.get_ticks()
+  if current_time - skill_state["last_used"] < skill_state["cooldown"]:
+    return #쿨타임 사용불가
+  skill_state["last_used"] = current_time
+  bone_img = pygame.image.load("assets/characters/haegol/skill1.png").convert_alpha()
+  bone_img = pygame.transform.scale(bone_img, (80, 80))
+  
+  bone = { 
+    "x": p1["x"] + (100 if owner == "p1" else -100),
+    "y": p1["y"]  + 80,
+    "vx": 15 if p2["x"] > p1["x"] else -15,
+    "active": True,
+    "damage": 10,
+    "img": bone_img,
+    "owner": owner
+  }
+  bones.append(bone)
+  
+
+def haegol_skill2(p1, p2, skill_state):
+  pass
+def haegol_ultimate(p1, p2, skill_state):
+  pass
+# 캐릭터 스킬 함수
+character_skill = {
+  "leesaengseon":  [leesaengseon_skill1, leesaengseon_skill2, leesaengseon_ultimate],
+  "haegol":  [haegol_skill1, haegol_skill2, haegol_ultimate],
+}
+# 캐릭터 스킬 상태 리스트
+character_skill_state = {
+  "leesaengseon" : {
+    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":5000 , "last_used":0, "active":False},
+    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
+  },
+  "haegol" : {
+    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":5000 , "last_used":0, "active":False},
+    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
+  },
+
+}
 
 text_1p = None
 text_2p = None
@@ -96,11 +147,13 @@ def characters(screen, current_scene):
 
   if character_config["selected_1p"]:
     img_1p = pygame.image.load(f"assets/characters/{character_config["selected_1p"]}/body.png")
+    img_1p = pygame.image.load(f"assets/characters/{character_config['selected_1p']}/body.png")
     img_1p = pygame.transform.scale(img_1p, (200, 200))
     screen.blit(img_1p, img_1p.get_rect(center=(text_1p_rect.centerx, text_1p_rect.centery + 130)))
 
   if character_config["selected_2p"]:
     img_2p = pygame.image.load(f"assets/characters/{character_config["selected_2p"]}/body.png")
+    img_2p = pygame.image.load(f"assets/characters/{character_config['selected_2p']}/body.png")
     img_2p = pygame.transform.scale(img_2p, (200, 200))
     screen.blit(img_2p, img_2p.get_rect(center=(text_2p_rect.centerx, text_2p_rect.centery + 130)))
 
