@@ -146,13 +146,11 @@ def characters(screen, current_scene):
   screen.blit(text_2p, text_2p_rect)
 
   if character_config["selected_1p"]:
-    img_1p = pygame.image.load(f"assets/characters/{character_config["selected_1p"]}/body.png")
     img_1p = pygame.image.load(f"assets/characters/{character_config['selected_1p']}/body.png")
     img_1p = pygame.transform.scale(img_1p, (200, 200))
     screen.blit(img_1p, img_1p.get_rect(center=(text_1p_rect.centerx, text_1p_rect.centery + 130)))
 
   if character_config["selected_2p"]:
-    img_2p = pygame.image.load(f"assets/characters/{character_config["selected_2p"]}/body.png")
     img_2p = pygame.image.load(f"assets/characters/{character_config['selected_2p']}/body.png")
     img_2p = pygame.transform.scale(img_2p, (200, 200))
     screen.blit(img_2p, img_2p.get_rect(center=(text_2p_rect.centerx, text_2p_rect.centery + 130)))

@@ -1,5 +1,4 @@
 import pygame
-from scenes.characters import character_config  # 캐릭터 선택 정보를 불러옵니다.
 from scenes.characters import character_config, character_skill, character_skill_state # 캐릭터 선택 정보를 불러옵니다.
 import copy
 
@@ -110,7 +109,6 @@ def gameplay(screen, map_image_path):
 
         # 1P 기술
         if keys[pygame.K_e]:
-            pass
             selected_1p = character_config["selected_1p"]
             skill_state = character_skill_state[selected_1p]["skill1"]
             if selected_1p == "haegol":
@@ -118,8 +116,6 @@ def gameplay(screen, map_image_path):
             else:
                  p1_skill1(p1, p2, p1_skill_state["skill1"])
         if keys[pygame.K_r]:
-            pass
-        if keys[pygame.K_s]:
             pass
         #궁극기
         if keys[pygame.K_s] and p1["ultimate_gauge"] >= 100:
