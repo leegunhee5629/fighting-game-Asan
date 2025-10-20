@@ -13,10 +13,6 @@ def gameplay(screen, map_image_path):
     p2_img = pygame.image.load(f"assets/characters/{character_config['selected_2p']}/body.png").convert_alpha()
     p1_img = pygame.transform.scale(p1_img, (200, 200))
     p2_img = pygame.transform.scale(p2_img, (200, 200))
-
-    # 캐릭터 초기 위치 및 속도
-    p1 = {"x": 100, "y": 500, "vx": 0, "vy": 0, "on_ground": True}
-    p2 = {"x": 1260, "y": 500, "vx": 0, "vy": 0, "on_ground": True}
     
     #스킬 이미지 불러오기
     p1_skill1_img = pygame.image.load(f"assets/characters/{character_config['selected_1p']}/skill1.png").convert_alpha()
