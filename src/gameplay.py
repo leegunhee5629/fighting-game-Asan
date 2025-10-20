@@ -123,7 +123,6 @@ def gameplay(screen, map_image_path):
 
         # 2P 기술
         if keys[pygame.K_RETURN]:
-            pass
             selected_2p = character_config["selected_2p"]
             skill_state = character_skill_state[selected_2p]["skill1"]
             if selected_2p == "haegol":
@@ -133,9 +132,6 @@ def gameplay(screen, map_image_path):
 
         if keys[pygame.K_RSHIFT] or keys[pygame.K_LSHIFT]:
             pass
-        if keys[pygame.K_DOWN]:
-            pass
-
         #궁극기
         if keys[pygame.K_DOWN] and p2["ultimate_gauge"] >= 100:
             pass #궁쓰고 나서 얼티게이지 0으로 초기화 하는 코드넣기
