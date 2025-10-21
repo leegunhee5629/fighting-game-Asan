@@ -1,5 +1,5 @@
 import pygame
-from scenes.characters import character_config, character_skill, character_skill_state # 캐릭터 선택 정보를 불러옵니다.
+from scenes.characters import character_config, character_skill, character_skill_state, haegol_ultimate # 캐릭터 선택 정보를 불러옵니다.
 import copy
 
 def gameplay(screen, map_image_path):
@@ -62,7 +62,14 @@ def gameplay(screen, map_image_path):
             pygame.draw.rect(screen, (128, 128 ,128), (x, y, 100, 10))
             pygame.draw.rect(screen, color, (x, y, gauge, 10))
     # 데미지 처리
-    def deal_damage(attacker, defender, damage):
+    def deal_damage(attacker, defender, defender_skill_state, damage):
+        if not isinstance(defender_skill_state, dict):
+            defender_skill_state = {}
+
+        invincible = defender_skill_state.get("ultimate", {}).get("invincible", False)
+        if invincible:
+            return #무적일때 노뎀
+
         defender["hp"] -= damage
         if defender["hp"] < 0:
             defender["hp"] = 0
@@ -80,6 +87,24 @@ def gameplay(screen, map_image_path):
 
     while running:
         screen.blit(background, (0, 0))
+
+        if "skill2" in p1_skill_state and "draw_func" in p1_skill_state["skill2"]:
+            if not p1_skill_state["skill2"]["draw_func"](screen):
+                p1_skill_state["skill2"].pop("draw_func", None)
+
+        if "skill2" in p2_skill_state and "draw_func" in p2_skill_state["skill2"]:
+            if not p2_skill_state["skill2"]["draw_func"](screen):
+                p2_skill_state["skill2"].pop("draw_func", None)
+
+        if "ultimate" in p1_skill_state and "draw_func" in p1_skill_state["ultimate"]:
+            if not p1_skill_state["ultimate"]["draw_func"](screen):
+                p1_skill_state["ultimate"].pop("draw_func", None)
+
+        if "ultimate" in p2_skill_state and "draw_func" in p2_skill_state["ultimate"]:
+            if not p2_skill_state["ultimate"]["draw_func"](screen):
+                p2_skill_state["ultimate"].pop("draw_func", None)
+
+
 
         keys = pygame.key.get_pressed()
 
@@ -115,11 +140,18 @@ def gameplay(screen, map_image_path):
                  p1_skill1(p1, p2, p1_skill_state["skill1"], bones, owner="p1")
             else:
                  p1_skill1(p1, p2, p1_skill_state["skill1"])
+
+
+
         if keys[pygame.K_r]:
-            pass
+            selected_1p = character_config["selected_1p"]
+            p1_skill2(p1, p2, p1_skill_state["skill2"])
+
+
         #궁극기
         if keys[pygame.K_s] and p1["ultimate_gauge"] >= 100:
-            pass #궁쓰고 나서 얼티게이지 0으로 초기화 하는 코드넣기
+            if character_config["selected_1p"] == "haegol":
+                haegol_ultimate(p1, p1_skill_state["ultimate"])
 
         # 2P 기술
         if keys[pygame.K_RETURN]:
@@ -130,11 +162,14 @@ def gameplay(screen, map_image_path):
             else:
                 p2_skill1(p2, p1, p2_skill_state["skill1"])
 
+
         if keys[pygame.K_RSHIFT] or keys[pygame.K_LSHIFT]:
-            pass
+            selected_2p = character_config["selected_2p"]
+            p1_skill2(p2, p1, p2_skill_state["skill2"])
         #궁극기
         if keys[pygame.K_DOWN] and p2["ultimate_gauge"] >= 100:
-            pass #궁쓰고 나서 얼티게이지 0으로 초기화 하는 코드넣기
+            if character_config["selected_2p"] == "haegol":
+                haegol_ultimate(p2, p2_skill_state["ultimate"])
                
         # 캐릭터 위치 업데이트 (중력 적용)
         for p in [p1, p2]:
@@ -172,6 +207,7 @@ def gameplay(screen, map_image_path):
                 if not bone["active"]:
                     bones.remove(bone)
                     continue
+                
                 bone["x"] += bone["vx"]
 
                 hit_margin = 30
@@ -179,13 +215,13 @@ def gameplay(screen, map_image_path):
                 if bone["owner"] == "p1": 
                    if (bone["x"] > p2["x"] and bone["x"] < p2["x"] + 200 and
                       bone["y"] > p2["y"] and bone["y"] < p2["y"] + 200):
-                      deal_damage(p1, p2, bone["damage"])
+                      deal_damage(p1, p2,p2_skill_state, bone["damage"])
                       bone["active"] = False
 
                 elif bone["owner"] == "p2":
                     if (bone["x"] > p1["x"] and bone["x"] < p1["x"] + 200 and
                         bone["y"] > p1["y"] and bone["y"] < p1["y"] + 200):
-                        deal_damage(p2, p1, bone["damage"])
+                        deal_damage(p2, p1, p1_skill_state, bone["damage"])
                         bone["active"] = False   
 
                 screen.blit(bone["img"], (bone["x"], bone["y"]))

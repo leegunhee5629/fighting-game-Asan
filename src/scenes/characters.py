@@ -10,6 +10,20 @@ character_config = {
   "selected_1p": None,
   "selected_2p": None,
 }
+
+def deal_damage(attacker, defender, damage):
+        defender["hp"] -= damage
+        if defender["hp"] < 0:
+            defender["hp"] = 0
+
+        attacker["ultimate_gauge"] += 10
+        if attacker["ultimate_gauge"] > 100:
+            attacker["ultimate_gauge"] = 100
+
+        defender["ultimate_gauge"] += 5
+        if defender["ultimate_gauge"] > 100:
+            defender["ultimate_gauge"] = 100
+
 # 스킬 함수들 정의
 def leesaengseon_skill1(p1, p2, skill_state):
   pass
@@ -39,9 +53,84 @@ def haegol_skill1(p1, p2, skill_state, bones, owner):
   
 
 def haegol_skill2(p1, p2, skill_state):
-  pass
-def haegol_ultimate(p1, p2, skill_state):
-  pass
+  current_time = pygame.time.get_ticks()
+  if skill_state.get("in_action", False):
+    return
+  if current_time - skill_state["last_used"] < skill_state["cooldown"]:
+    return #쿨타임 사용불가
+  skill_state["last_used"] = current_time
+
+  skill_state["in_action"] = True
+  skill_state["last_used"] = current_time
+  skill_state["damage_done"] = False
+
+  bone_img = pygame.image.load("assets/characters/haegol/ultimate.png").convert_alpha()
+  bone_img = pygame.transform.scale(bone_img, (160, 100))
+
+  facing_right = p2["x"] > p1["x"]
+  direction = 1 if facing_right else -1
+
+  duration = 300
+  max_reach = 160
+  start_x = p1["x"] + (40 if facing_right else 40)
+  start_y = p1["y"] + 60
+  start_time = pygame.time.get_ticks()
+  
+
+  def draw_attack_effect(screen):
+    elapsed = pygame.time.get_ticks() - start_time
+    progress = min(1.0, elapsed / duration)
+    distance = max_reach * progress
+    attack_x = start_x + distance * direction
+    attack_y = start_y
+
+    screen.blit(bone_img, (attack_x, attack_y))
+
+    if not skill_state["damage_done"]:
+        hitbox = pygame.Rect(attack_x, attack_y, 120, 80)
+        target_rect = pygame.Rect(p2["x"], p2["y"], 200, 200)
+        if hitbox.colliderect(target_rect):
+          deal_damage(p1, p2, 15)
+          skill_state["damage_done"] = True
+
+    if elapsed >= duration:
+        skill_state["in_action"] = False
+        return False
+    return True
+
+
+  skill_state["draw_func"] = draw_attack_effect
+
+
+def haegol_ultimate(p1, skill_state):
+  current_time = pygame.time.get_ticks()
+  if skill_state.get("in_action", False):
+    return
+  if current_time - skill_state["last_used"] < skill_state["cooldown"]:
+    return
+  if p1["ultimate_gauge"] < 100:
+    return #게이지 부족으로 인한 궁 사용불가
+
+  skill_state["in_action"] = True
+  skill_state["last_used"] = current_time
+  skill_state["start_time"] = pygame.time.get_ticks()
+  skill_state["duration"] = 3000
+  skill_state["invincible"] = True
+  p1["ultimate_gauge"] = 0
+
+  def draw_ultimate(screen):
+      elapsed = pygame.time.get_ticks() - skill_state["start_time"]
+
+      pygame.draw.circle(screen, (255, 215, 0), (int(p1["x"] + 100), int(p1["y"] + 100)), 70, 5)
+      
+
+  
+      if elapsed >= skill_state["duration"]:
+           skill_state["in_action"] = False
+           skill_state["invincible"] = False
+           return False
+      return True
+  skill_state["draw_func"] = draw_ultimate
 # 캐릭터 스킬 함수
 character_skill = {
   "leesaengseon":  [leesaengseon_skill1, leesaengseon_skill2, leesaengseon_ultimate],
@@ -51,12 +140,12 @@ character_skill = {
 character_skill_state = {
   "leesaengseon" : {
     "skill1": {"cooldown":2000 , "last_used":0, "active":False},
-    "skill2": {"cooldown":5000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":1000 , "last_used":0, "active":False},
     "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
   },
   "haegol" : {
     "skill1": {"cooldown":2000 , "last_used":0, "active":False},
-    "skill2": {"cooldown":5000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":4000 , "last_used":0, "active":False},
     "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
   },
 
