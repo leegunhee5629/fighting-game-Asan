@@ -6,6 +6,10 @@ character_config = {
   "character_list": [
     {"name": "이생선", "codename": "leesaengseon", "rect": pygame.Rect(70, 380, 85, 85)},
     {"name": "해골", "codename": "haegol", "rect": pygame.Rect(175, 380, 85, 85)},
+    {"name": "두더지","codename":"dudeoji","rect": pygame.Rect(280, 380, 85, 85)},
+    {"name": "얼음","codename":"ice","rect": pygame.Rect(385, 380, 85, 85)},
+    {"name": "조커","codename":"joker","rect": pygame.Rect(490, 380, 85, 85)},
+    {"name": "마녀","codename":"witch","rect": pygame.Rect(595, 380, 85, 85)},
   ],
   "selected_1p": None,
   "selected_2p": None,
@@ -49,8 +53,7 @@ def haegol_skill1(p1, p2, skill_state, bones, owner):
     "img": bone_img,
     "owner": owner
   }
-  bones.append(bone)
-  
+  bones.append(bone) 
 
 def haegol_skill2(p1, p2, skill_state):
   current_time = pygame.time.get_ticks()
@@ -118,6 +121,34 @@ def haegol_ultimate(p1, skill_state):
   skill_state["invincible"] = True
   p1["ultimate_gauge"] = 0
 
+def dudeoji_skill1(p1, p2, skill_state):
+  pass
+def dudeoji_skill2(p1, p2, skill_state):
+  pass
+def dudeoji_ultimate(p1, p2, skill_state):
+  pass
+
+def ice_skill1(p1, p2, skill_state):
+  pass
+def ice_skill2(p1, p2, skill_state):
+  pass
+def ice_ultimate(p1, p2, skill_state):
+  pass
+
+def witch_skill1(p1, p2, skill_state):
+  pass
+def witch_skill2(p1, p2, skill_state):
+  pass
+def witch_ultimate(p1, p2, skill_state):
+  pass
+
+def joker_skill1(p1, p2, skill_state):
+  pass
+def joker_skill2(p1, p2, skill_state):
+  pass
+def joker_ultimate(p1, p2, skill_state):
+  pass
+
   def draw_ultimate(screen):
       elapsed = pygame.time.get_ticks() - skill_state["start_time"]
 
@@ -135,6 +166,10 @@ def haegol_ultimate(p1, skill_state):
 character_skill = {
   "leesaengseon":  [leesaengseon_skill1, leesaengseon_skill2, leesaengseon_ultimate],
   "haegol":  [haegol_skill1, haegol_skill2, haegol_ultimate],
+  "dudeoji":  [dudeoji_skill1, dudeoji_skill2, dudeoji_ultimate],
+  "ice":  [ice_skill1, ice_skill2, ice_ultimate],
+  "witch":  [witch_skill1, witch_skill2, witch_ultimate],
+  "joker":  [joker_skill1, joker_skill2, joker_ultimate],
 }
 # 캐릭터 스킬 상태 리스트
 character_skill_state = {
@@ -148,7 +183,26 @@ character_skill_state = {
     "skill2": {"cooldown":4000 , "last_used":0, "active":False},
     "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
   },
-
+  "dudeoji" : {
+    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":1000 , "last_used":0, "active":False},
+    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
+  },
+  "ice" : {
+    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":1000 , "last_used":0, "active":False},
+    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
+  },
+    "witch" : {
+    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":1000 , "last_used":0, "active":False},
+    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
+  },
+    "joker" : {
+    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":1000 , "last_used":0, "active":False},
+    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
+  },
 }
 
 text_1p = None
