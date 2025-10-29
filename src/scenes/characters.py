@@ -6,13 +6,20 @@ pygame.mixer.init()
 
 character_config = {
   "character_list": [
-    {"name": "이생선", "codename": "leesaengseon", "rect": pygame.Rect(70, 380, 85, 85)},
-    {"name": "해골", "codename": "haegol", "rect": pygame.Rect(175, 380, 85, 85)},
+    {"name": "이생선", "codename": "leesaengseon", "rect": pygame.Rect(40, 380, 85, 85)},
+    {"name": "해골",   "codename": "haegol",       "rect": pygame.Rect(150, 380, 85, 85)},
+    {"name": "조커",   "codename": "joker",       "rect": pygame.Rect(260, 380, 85, 85)},
+    {"name": "아이스맨","codename": "iceman",     "rect": pygame.Rect(370, 380, 85, 85)},
+    {"name": "마녀",   "codename": "witch",       "rect": pygame.Rect(480, 380, 85, 85)},
+    {"name": "두더지", "codename": "mole",        "rect": pygame.Rect(590, 380, 85, 85)},
+    {"name": "보노보노","codename": "bonobono",   "rect": pygame.Rect(700, 380, 85, 85)},
+    {"name": "파이터", "codename": "fighter",     "rect": pygame.Rect(810, 380, 85, 85)},
   ],
   "selected_1p": None,
   "selected_2p": None,
 }
-# 스킬 함수들 정의
+
+# 스킬 함수들 (간단히 자리만 확보)
 def leesaengseon_skill1(p1, p2, skill_state):
   pass
 def leesaengseon_skill2(p1, p2, skill_state):
@@ -22,47 +29,50 @@ def leesaengseon_ultimate(p1, p2, skill_state):
 
 def haegol_skill1(p1, p2, skill_state, bones, owner):
   current_time = pygame.time.get_ticks()
-  if current_time - skill_state["last_used"] < skill_state["cooldown"]:
-    return #쿨타임 사용불가
+  if current_time - skill_state.get("last_used", 0) < skill_state.get("cooldown", 0):
+    return
   skill_state["last_used"] = current_time
-  bone_img = pygame.image.load("assets/characters/haegol/skill1.png").convert_alpha()
-  bone_img = pygame.transform.scale(bone_img, (80, 80))
-  
-  bone = { 
-    "x": p1["x"] + (100 if owner == "p1" else -100),
-    "y": p1["y"]  + 80,
-    "vx": 15 if p2["x"] > p1["x"] else -15,
+  try:
+    bone_img = pygame.image.load("assets/characters/haegol/skill1.png").convert_alpha()
+    bone_img = pygame.transform.scale(bone_img, (80, 80))
+  except Exception:
+    bone_img = None
+
+  bone = {
+    "x": p1.get("x", 0) + (100 if owner == "p1" else -100),
+    "y": p1.get("y", 0) + 80,
+    "vx": 15 if p2.get("x", 0) > p1.get("x", 0) else -15,
     "active": True,
     "damage": 10,
     "img": bone_img,
     "owner": owner
   }
   bones.append(bone)
-  
 
 def haegol_skill2(p1, p2, skill_state):
   pass
 def haegol_ultimate(p1, p2, skill_state):
   pass
-# 캐릭터 스킬 함수
-character_skill = {
-  "leesaengseon":  [leesaengseon_skill1, leesaengseon_skill2, leesaengseon_ultimate],
-  "haegol":  [haegol_skill1, haegol_skill2, haegol_ultimate],
-}
-# 캐릭터 스킬 상태 리스트
-character_skill_state = {
-  codename: {
-    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
-    "skill2": {"cooldown":1000 , "last_used":0, "active":False},
-    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
-  },
-  "haegol" : {
-    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
-    "skill2": {"cooldown":5000 , "last_used":0, "active":False},
-    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
-  },
 
+# 캐릭터 스킬 함수 매핑
+character_skill = {
+  "leesaengseon": [leesaengseon_skill1, leesaengseon_skill2, leesaengseon_ultimate],
+  "haegol":       [haegol_skill1, haegol_skill2, haegol_ultimate],
+  # 나머지 캐릭터는 필요한 경우 추가
 }
+
+# 캐릭터 스킬 상태: 안전한 방식으로 생성 (NameError 방지)
+_default_skill_template = {
+  "skill1":  {"cooldown": 2000,  "last_used": 0, "active": False},
+  "skill2":  {"cooldown": 1000,  "last_used": 0, "active": False},
+  "ultimate":{"cooldown":10000, "last_used": 0, "active": False},
+}
+character_skill_state = {}
+for c in [c["codename"] for c in character_config["character_list"]]:
+  character_skill_state[c] = {k: v.copy() for k, v in _default_skill_template.items()}
+# 개별 튜닝
+if "haegol" in character_skill_state:
+  character_skill_state["haegol"]["skill2"]["cooldown"] = 5000
 
 text_1p = None
 text_2p = None
@@ -70,6 +80,8 @@ start_time = None
 process = 0
 
 def get_charactername_by_codename(codename):
+  if not codename:
+    return None
   for char in character_config["character_list"]:
     if char["codename"] == codename:
       return char["name"]
@@ -151,7 +163,7 @@ def characters(screen, current_scene):
   screen.blit(text_1p, text_1p_rect)
   screen.blit(text_2p, text_2p_rect)
 
-  # 현재 마우스 위치 기반 hover 코드네임 계산
+  # 마우스 위치로 hover 코드네임 계산
   mouse_pos = pygame.mouse.get_pos()
   hover_codename = None
   for char in character_config["character_list"]:
@@ -159,11 +171,9 @@ def characters(screen, current_scene):
       hover_codename = char["codename"]
       break
 
-  # 미리보기 그리기 함수: hover가 있으면 hover 우선, 없으면 이미 선택된 항목 보여줌
+  # 미리보기 그리기 (hover 우선, 아니면 선택된 것 보여줌)
   def _draw_preview_for_player(player_idx, centerx, centery):
     sel = character_config["selected_1p"] if player_idx == 1 else character_config["selected_2p"]
-    # show hover during that player's selection turn; otherwise show confirmed selection if any
-    show_codename = None
     if (process == 1 and player_idx == 1) or (process == 2 and player_idx == 2):
       show_codename = hover_codename or sel
     else:
@@ -183,14 +193,11 @@ def characters(screen, current_scene):
       label = small.render(name, True, (0,0,0))
       screen.blit(label, label.get_rect(center=(centerx, centery)))
 
-  # 왼쪽(1P) / 오른쪽(2P) 미리보기
   _draw_preview_for_player(1, text_1p_rect.centerx, text_1p_rect.centery + 130)
   _draw_preview_for_player(2, text_2p_rect.centerx, text_2p_rect.centery + 130)
 
-  # 타일 렌더링 제거 — rect는 hover/클릭 판정에 사용됨
-  # (화면에 표시되는 아이콘/타일은 없으며, hover 시 이미지만 표시됩니다)
-
-  # 이벤트 처리: 좌클릭(버튼1)으로 hover 중인 캐릭터를 최종 확정
+  # (타일/아이콘 렌더링 없음 — rect는 hover/클릭 판정에 계속 사용)
+  # 이벤트 처리: 좌클릭으로 hover된 캐릭터를 확정
   for event in pygame.event.get():
     if event.type == pygame.QUIT:
       return None
@@ -206,3 +213,4 @@ def characters(screen, current_scene):
           process = 3
 
   return "Characters"
+# ...existing code...
