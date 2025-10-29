@@ -6,26 +6,62 @@ pygame.mixer.init()
 
 character_config = {
   "character_list": [
-    {"name": "이생선", "codename": "leesaengseon", "rect": pygame.Rect(40, 380, 85, 85)},
-    {"name": "해골", "codename": "haegol", "rect": pygame.Rect(150, 380, 85, 85)},
-    {"name": "조커", "codename": "joker", "rect": pygame.Rect(260, 380, 85, 85)},
-    {"name": "아이스맨", "codename": "iceman", "rect": pygame.Rect(370, 380, 85, 85)},
-    {"name": "마녀", "codename": "witch", "rect": pygame.Rect(480, 380, 85, 85)},
-    {"name": "두더지", "codename": "mole", "rect": pygame.Rect(590, 380, 85, 85)},
-    {"name": "보노보노", "codename": "bonobono", "rect": pygame.Rect(700, 380, 85, 85)},
-    {"name": "파이터", "codename": "fighter", "rect": pygame.Rect(810, 380, 85, 85)},
+    {"name": "이생선", "codename": "leesaengseon", "rect": pygame.Rect(70, 380, 85, 85)},
+    {"name": "해골", "codename": "haegol", "rect": pygame.Rect(175, 380, 85, 85)},
   ],
   "selected_1p": None,
   "selected_2p": None,
 }
+# 스킬 함수들 정의
+def leesaengseon_skill1(p1, p2, skill_state):
+  pass
+def leesaengseon_skill2(p1, p2, skill_state):
+  pass
+def leesaengseon_ultimate(p1, p2, skill_state):
+  pass
 
-# 캐릭터 스킬 상태 (기본값)
+def haegol_skill1(p1, p2, skill_state, bones, owner):
+  current_time = pygame.time.get_ticks()
+  if current_time - skill_state["last_used"] < skill_state["cooldown"]:
+    return #쿨타임 사용불가
+  skill_state["last_used"] = current_time
+  bone_img = pygame.image.load("assets/characters/haegol/skill1.png").convert_alpha()
+  bone_img = pygame.transform.scale(bone_img, (80, 80))
+  
+  bone = { 
+    "x": p1["x"] + (100 if owner == "p1" else -100),
+    "y": p1["y"]  + 80,
+    "vx": 15 if p2["x"] > p1["x"] else -15,
+    "active": True,
+    "damage": 10,
+    "img": bone_img,
+    "owner": owner
+  }
+  bones.append(bone)
+  
+
+def haegol_skill2(p1, p2, skill_state):
+  pass
+def haegol_ultimate(p1, p2, skill_state):
+  pass
+# 캐릭터 스킬 함수
+character_skill = {
+  "leesaengseon":  [leesaengseon_skill1, leesaengseon_skill2, leesaengseon_ultimate],
+  "haegol":  [haegol_skill1, haegol_skill2, haegol_ultimate],
+}
+# 캐릭터 스킬 상태 리스트
 character_skill_state = {
   codename: {
     "skill1": {"cooldown":2000 , "last_used":0, "active":False},
+    "skill2": {"cooldown":1000 , "last_used":0, "active":False},
+    "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
+  },
+  "haegol" : {
+    "skill1": {"cooldown":2000 , "last_used":0, "active":False},
     "skill2": {"cooldown":5000 , "last_used":0, "active":False},
     "ultimate": {"cooldown":10000 , "last_used":0, "active":False},
-  } for codename in ["leesaengseon","haegol","joker","iceman","witch","mole","bonobono","fighter"]
+  },
+
 }
 
 text_1p = None

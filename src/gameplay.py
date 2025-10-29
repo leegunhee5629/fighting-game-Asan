@@ -1,4 +1,5 @@
 import pygame
+from scenes.characters import character_config, character_skill, character_skill_state # 캐릭터 선택 정보를 불러옵니다.
 import copy
 from scenes.characters import character_config, character_skill_state
 from scenes.skills import get_skills_for_character
@@ -67,10 +68,10 @@ def gameplay(screen, map_image_path):
         pygame.draw.rect(screen, color, (x, y, hp, 10))
 
     def draw_ultimate_gauge(screen, x, y, gauge, color):
-        gauge = max(0, min(100, gauge))
-        pygame.draw.rect(screen, (128, 128, 128), (x, y, 100, 10))
-        pygame.draw.rect(screen, color, (x, y, gauge, 10))
-
+            gauge=max(0, min(100, gauge))
+            pygame.draw.rect(screen, (128, 128 ,128), (x, y, 100, 10))
+            pygame.draw.rect(screen, color, (x, y, gauge, 10))
+    # 데미지 처리
     def deal_damage(attacker, defender, damage):
         defender["hp"] -= damage
         if defender["hp"] < 0:
@@ -80,6 +81,7 @@ def gameplay(screen, map_image_path):
 
     while running:
         screen.blit(background, (0, 0))
+
         keys = pygame.key.get_pressed()
 
         # 이동 입력
@@ -103,25 +105,37 @@ def gameplay(screen, map_image_path):
             p2["vy"] = jump_power
             p2["on_ground"] = False
 
-        # 스킬 입력 처리 (Skill 객체의 activate 사용)
-        if keys[pygame.K_e] and p1_skill1:
-            p1_skill1.activate(p1, p2, p1_skill_state.get("skill1", {}), world, owner="p1")
-        if keys[pygame.K_r] and p1_skill2:
-            p1_skill2.activate(p1, p2, p1_skill_state.get("skill2", {}), world, owner="p1")
-        if keys[pygame.K_s] and p1_ultimate and p1["ultimate_gauge"] >= 100:
-            p1_ultimate.activate(p1, p2, p1_skill_state.get("ultimate", {}), world, owner="p1")
-            p1["ultimate_gauge"] = 0
+        # 1P 기술
+        if keys[pygame.K_e]:
+            selected_1p = character_config["selected_1p"]
+            skill_state = character_skill_state[selected_1p]["skill1"]
+            if selected_1p == "haegol":
+                 p1_skill1(p1, p2, p1_skill_state["skill1"], bones, owner="p1")
+            else:
+                 p1_skill1(p1, p2, p1_skill_state["skill1"])
+        if keys[pygame.K_r]:
+            pass
+        #궁극기
+        if keys[pygame.K_s] and p1["ultimate_gauge"] >= 100:
+            pass #궁쓰고 나서 얼티게이지 0으로 초기화 하는 코드넣기
 
-        if keys[pygame.K_RETURN] and p2_skill1:
-            p2_skill1.activate(p2, p1, p2_skill_state.get("skill1", {}), world, owner="p2")
-        if (keys[pygame.K_RSHIFT] or keys[pygame.K_LSHIFT]) and p2_skill2:
-            p2_skill2.activate(p2, p1, p2_skill_state.get("skill2", {}), world, owner="p2")
-        if keys[pygame.K_DOWN] and p2_ultimate and p2["ultimate_gauge"] >= 100:
-            p2_ultimate.activate(p2, p1, p2_skill_state.get("ultimate", {}), world, owner="p2")
-            p2["ultimate_gauge"] = 0
+        # 2P 기술
+        if keys[pygame.K_RETURN]:
+            selected_2p = character_config["selected_2p"]
+            skill_state = character_skill_state[selected_2p]["skill1"]
+            if selected_2p == "haegol":
+                p2_skill1(p2, p1, p2_skill_state["skill1"], bones, owner="p2")
+            else:
+                p2_skill1(p2, p1, p2_skill_state["skill1"])
 
-        # 물리 업데이트
-        for p in (p1, p2):
+        if keys[pygame.K_RSHIFT] or keys[pygame.K_LSHIFT]:
+            pass
+        #궁극기
+        if keys[pygame.K_DOWN] and p2["ultimate_gauge"] >= 100:
+            pass #궁쓰고 나서 얼티게이지 0으로 초기화 하는 코드넣기
+               
+        # 캐릭터 위치 업데이트 (중력 적용)
+        for p in [p1, p2]:
             p["x"] += p["vx"]
             p["y"] += p["vy"]
             if not p["on_ground"]:
@@ -148,44 +162,30 @@ def gameplay(screen, map_image_path):
         draw_ultimate_gauge(screen, 100, 100, p1["ultimate_gauge"], (238, 130, 238))
         draw_ultimate_gauge(screen, screen.get_width() - 200, 100, p2["ultimate_gauge"], (238, 130, 238))
 
-        # 발사체 업데이트 및 충돌
-        for proj in projectiles[:]:
-            if hasattr(proj, "update"):
-                proj.update(world)
-            else:
-                proj["x"] += proj.get("vx", 0)
-            # 충돌 판정 (단순 박스)
-            owner = getattr(proj, "owner", proj.get("owner", None))
-            x = getattr(proj, "x", proj.get("x", 0))
-            y = getattr(proj, "y", proj.get("y", 0))
-            dmg = getattr(proj, "damage", proj.get("damage", 0))
-            active = getattr(proj, "active", proj.get("active", True))
+    
+        # 뼈 스킬 발사체
+        if bones:
+            for bone in bones[:]:
+                if not bone["active"]:
+                    bones.remove(bone)
+                    continue
+                bone["x"] += bone["vx"]
 
-            if not active:
-                projectiles.remove(proj)
-                continue
+                hit_margin = 30
 
-            if owner == "p1":
-                if (x > p2["x"] and x < p2["x"] + 200 and y > p2["y"] and y < p2["y"] + 200):
-                    deal_damage(p1, p2, dmg)
-                    if hasattr(proj, "active"):
-                        proj.active = False
-                    else:
-                        proj["active"] = False
-            elif owner == "p2":
-                if (x > p1["x"] and x < p1["x"] + 200 and y > p1["y"] and y < p1["y"] + 200):
-                    deal_damage(p2, p1, dmg)
-                    if hasattr(proj, "active"):
-                        proj.active = False
-                    else:
-                        proj["active"] = False
+                if bone["owner"] == "p1": 
+                   if (bone["x"] > p2["x"] and bone["x"] < p2["x"] + 200 and
+                      bone["y"] > p2["y"] and bone["y"] < p2["y"] + 200):
+                      deal_damage(p1, p2, bone["damage"])
+                      bone["active"] = False
 
-            if hasattr(proj, "draw"):
-                proj.draw(screen)
-            else:
-                img = proj.get("img")
-                if img:
-                    screen.blit(img, (proj["x"], proj["y"]))
+                elif bone["owner"] == "p2":
+                    if (bone["x"] > p1["x"] and bone["x"] < p1["x"] + 200 and
+                        bone["y"] > p1["y"] and bone["y"] < p1["y"] + 200):
+                        deal_damage(p2, p1, bone["damage"])
+                        bone["active"] = False   
+
+                screen.blit(bone["img"], (bone["x"], bone["y"]))
 
             # 제거 조건
             alive = getattr(proj, "active", proj.get("active", True))
