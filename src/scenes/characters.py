@@ -63,7 +63,7 @@ character_skill = {
 
 # 캐릭터 스킬 상태: 안전한 방식으로 생성 (NameError 방지)
 _default_skill_template = {
-  "skill1":  {"cooldown": 2000,  "last_used": 0, "active": False},
+  "skill1":  {"cooldown": 500,  "last_used": 0, "active": False},
   "skill2":  {"cooldown": 1000,  "last_used": 0, "active": False},
   "ultimate":{"cooldown":10000, "last_used": 0, "active": False},
 }
