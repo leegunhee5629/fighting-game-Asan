@@ -29,6 +29,10 @@ class Character:
         self.attack_timer = 0
         self.is_attacking = False
         self.hit_timer = 0 # 피격 애니메이션 타이머 추가
+        
+        # 📢 혼란 상태 저장을 위한 변수 (gameplay.py에서 전달받아 사용)
+        self.is_confused = False
+
         # facing_right, is_awakened 등은 이제 self.state 딕셔너리에 포함되어야 하지만,
         # 기존 코드 호환성을 위해 self.state에 없는 경우 기본값을 설정합니다.
         if "facing_right" not in self.state:
@@ -55,7 +59,7 @@ class Character:
         # BODY_SIZE를 head와 body에 사용, HAND_SIZE를 손에 사용
         return {
             # 기본 부위
-            "head": self._safe_load_image("head", self.BODY_SIZE),
+            "head": self._safe_load_image("head", self.BODY_SIZE), # ⬅️ 모든 캐릭터 head.png 사용
             "body": self._safe_load_image("body", self.BODY_SIZE), # 몸통은 예비용
             "righthand": self._safe_load_image("righthand", self.HAND_SIZE),
             "lefthand": self._safe_load_image("lefthand", self.HAND_SIZE),
@@ -63,6 +67,8 @@ class Character:
             # 각성 헤드 애니메이션 프레임 (haegol 전용이라 가정)
             "head_gak_1": self._safe_load_image("head_gak_1", self.BODY_SIZE),
             "head_gak_2": self._safe_load_image("head_gak_2", self.BODY_SIZE),
+            
+            # 🚨 joker_face 로직 삭제
         }
 
     def start_attack_animation(self):
@@ -81,10 +87,16 @@ class Character:
             self.state["is_awakened"] = True
             self.state["awakening_end_time"] = pygame.time.get_ticks() + duration_ms
 
-    # update 시그니처 수정: is_invincible 인자 추가
-    def update(self, dt: int, is_invincible: bool):
-        """캐릭터의 애니메이션 타이머 및 각성 상태를 업데이트합니다."""
+    # ✅ TypeError 해결: is_confused 인자 추가
+    def update(self, dt: int, is_invincible: bool, is_confused: bool = False):
+        """
+        캐릭터의 애니메이션 타이머 및 각성 상태를 업데이트합니다. 
+        is_confused 상태를 내부적으로 저장합니다.
+        """
         current_time = pygame.time.get_ticks()
+        
+        # 📢 혼란 상태 저장
+        self.is_confused = is_confused 
         
         # 1. 공격 타이머 업데이트
         if self.is_attacking:
@@ -104,8 +116,8 @@ class Character:
             
         # 4. 방향 업데이트 (draw에서 처리하므로 여기서는 생략)
 
-    # draw 시그니처 수정: current_x, current_y, opponent_x, is_invincible 인자 추가
-    def draw(self, screen: pygame.Surface, current_x: float, current_y: float, opponent_x: float, is_invincible: bool):
+    # ✅ is_confused 인자 추가 및 처리
+    def draw(self, screen: pygame.Surface, current_x: float, current_y: float, opponent_x: float, is_invincible: bool, is_confused: bool = False):
         """캐릭터의 파트를 화면에 그립니다. (머리 + 두 손)"""
         
         # 0. 방향 업데이트: 상대방 위치를 기준으로 방향을 결정합니다.
@@ -115,7 +127,6 @@ class Character:
             self.state["facing_right"] = False
             
         # 0.5. 무적 깜빡임 효과 (무적 상태 + 깜빡임 주기에 해당하면 그리지 않음)
-        # 피격 애니메이션(hit_timer)이 활성화되어도 무적 깜빡임은 계속 적용됩니다.
         if is_invincible and (pygame.time.get_ticks() // 100 % 2) == 0:
             return 
         
@@ -126,7 +137,8 @@ class Character:
         facing_right = self.state["facing_right"]
         
         # 2. 머리 이미지 결정 (각성 애니메이션 적용)
-        main_img = self.images.get("head") or self.images.get("body") # 기본 이미지
+        # 🚨 수정: 모든 캐릭터는 head.png 또는 body.png 사용
+        main_img = self.images.get("head") or self.images.get("body") 
         
         if self.state.get("is_awakened", False) and self.codename == "haegol":
             current_time = pygame.time.get_ticks()
@@ -152,8 +164,15 @@ class Character:
 
             screen.blit(draw_img, (x + offset_x, y)) # (x, y)는 전체 캐릭터 박스의 좌상단
             
+            # 🚨 4. 혼란 상태 오버레이 (캐릭터를 그린 후 덮어씀)
+            if is_confused:
+                overlay = pygame.Surface(draw_img.get_size(), pygame.SRCALPHA)
+                # 은은한 보라색 (128, 0, 128)에 투명도(alpha) 80 적용
+                overlay.fill((128, 0, 128, 80)) 
+                screen.blit(overlay, (x + offset_x, y)) 
             
-        # 4. 오른손/왼손 오프셋 및 스윙 계산
+            
+        # 5. 오른손/왼손 오프셋 및 스윙 계산
         
         # 공격 스윙 계산 (0 -> 최고점 -> 0)
         attack_swing_offset = 0
@@ -163,16 +182,10 @@ class Character:
             attack_swing_offset = self.ATTACK_SWING_PIXELS * progress 
 
         # --- 기본 부위별 오프셋 정의 ---
-        # 📌 요청에 따라 손 크기(200)가 몸통 크기(200)와 같다고 가정하고, 
-        #    손을 머리의 수직 중앙(Y=0)에, 수평으로는 머리 옆에 배치하도록 오프셋을 조정했습니다.
-        
-        # Righthand (오른손): 머리 오른쪽 끝(x + 200)에 배치
         R_BASE_OFFSET_X = 100 
-        R_BASE_OFFSET_Y = 0 # 머리 높이 중앙에 정렬 (y에서 시작)
-        
-        # Lefthand (왼손): 머리 왼쪽 끝(x - 200)에 배치
+        R_BASE_OFFSET_Y = 0 
         L_BASE_OFFSET_X = -100 
-        L_BASE_OFFSET_Y = 0 # 머리 높이 중앙에 정렬 (y에서 시작)
+        L_BASE_OFFSET_Y = 0 
         
         # --- 오른손 그리기 (공격 애니메이션 적용) ---
         hand_img_right = self.images["righthand"]
@@ -180,13 +193,11 @@ class Character:
             
             draw_hand_right = hand_img_right
             if facing_right:
-                # 오른쪽 바라볼 때: 오른손은 오른쪽에 (x + body_width) + 공격 스윙
+                # 오른쪽 바라볼 때: 오른손은 오른쪽에
                 hand_x = x + R_BASE_OFFSET_X + attack_swing_offset
             else:
-                # 왼쪽 바라볼 때: 오른손은 왼쪽에 배치. 이미지 뒤집기, (x - hand_width) - 공격 스윙
+                # 왼쪽 바라볼 때: 오른손은 왼쪽에 배치. 이미지 뒤집기
                 draw_hand_right = pygame.transform.flip(hand_img_right, True, False)
-                # 오프셋을 기반으로 계산: x + body_width - R_BASE_OFFSET_X - hand_width - attack_swing_offset 
-                # -> x + 200 - 200 - 200 - swing = x - 200 - swing
                 hand_x = x + body_width - R_BASE_OFFSET_X - hand_width - attack_swing_offset
             
             hand_y = y + R_BASE_OFFSET_Y
@@ -199,14 +210,11 @@ class Character:
             
             draw_hand_left = hand_img_left
             if facing_right:
-                # 오른쪽 바라볼 때: 왼손은 왼쪽에 (x - hand_width)
-                # 오프셋을 기반으로 계산: x + L_BASE_OFFSET_X -> x - 200
+                # 오른쪽 바라볼 때: 왼손은 왼쪽에 
                 hand_x_left = x + L_BASE_OFFSET_X
             else:
-                # 왼쪽 바라볼 때: 왼손은 오른쪽에 배치. 이미지 뒤집기, (x + body_width)
+                # 왼쪽 바라볼 때: 왼손은 오른쪽에 배치. 이미지 뒤집기
                 draw_hand_left = pygame.transform.flip(hand_img_left, True, False)
-                # 오프셋을 기반으로 계산: x + body_width - L_BASE_OFFSET_X - hand_width 
-                # -> x + 200 - (-200) - 200 = x + 200
                 hand_x_left = x + body_width - L_BASE_OFFSET_X - hand_width
 
             hand_y_left = y + L_BASE_OFFSET_Y
