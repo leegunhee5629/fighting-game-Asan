@@ -67,14 +67,17 @@ class UltimateSkillBase(Skill):
         super().__init__(name, cooldown_ms, **kwargs)
         self.ult_cost_percent = ult_cost 
 
-    # 💡 수정: UltimateSkillBase에서는 쿨다운만 체크하고 게이지 소모 로직은 제거합니다.
     def activate(self, user: dict, target: dict, skill_state: dict, world: dict, user_obj=None, owner: str = "p1", **kwargs):
         if not self.ready(): return []
         
-        # 쿨다운 리셋은 여기서 수행하지 않습니다. 상속 클래스에서 게이지 체크 후 수행
         if user_obj: user_obj.start_attack_animation() 
         
         return []
+        
+    def update(self, dt: int, world: dict, user_state: dict, skill_state: dict, user_obj=None, owner: str = "p1"):
+        """궁극기 활성화 중 시간 경과를 체크하고 2단계로 전환하는 로직은 상속 클래스에서 구현합니다."""
+        pass
+
 
 class Projectile:
     """발사체 객체의 기본 클래스 (gameplay.py에서 객체로 인식됨)"""
@@ -92,7 +95,8 @@ class Projectile:
         self.size = size 
         self.stuns_target = False 
         self.causes_confusion = False 
-
+        self.hit_once_only = False # 투사체가 충돌 시 한 번만 타격하고 비활성화될지 여부
+        
     def update(self, world: dict):
         self.vy += self.gravity # 중력 적용
         self.x += self.vx
@@ -114,19 +118,27 @@ class MeleeHitbox(Projectile):
     def __init__(self, x, y, damage, owner, duration_ms=200, size=120):
         super().__init__(x, y, 0, None, damage, owner, size) 
         self.life_timer = pygame.time.get_ticks() + duration_ms
+        self.stuns_target = False 
+        self.stun_duration_ms = 0
+        self.hit_already = False 
+        self.attached_to_char = None # 돌진처럼 캐릭터에 붙어서 이동하는지 여부 (캐릭터 owner의 이름)
         
     def update(self, world: dict):
         if pygame.time.get_ticks() > self.life_timer:
             self.active = False
+            
+        # 캐릭터에 붙어있는 경우, 캐릭터의 위치를 따라갑니다.
+        # 이 로직은 gameplay.py에서 처리될 수도 있지만, 여기서는 단순 시간 체크만 합니다.
+        # self.attached_to_char에 따른 위치 업데이트 로직이 gameplay.py에 있다고 가정합니다.
 
     def draw(self, screen: pygame.Surface):
         pass
 
 class AnimatedEffect(Projectile):
     """
-    재사용 가능한 애니메이션 이펙트 클래스. (크기 변화 애니메이션 로직 추가)
+    재사용 가능한 애니메이션 이펙트 클래스.
     """
-    def __init__(self, x, y, frames: List[pygame.Surface], frame_duration_ms: int, owner: str, size: int, scale_factor: float = 0.0):
+    def __init__(self, x, y, frames: List[pygame.Surface], frame_duration_ms: int, owner: str, size: int, scale_factor: float = 0.0, loops: int = 1):
         super().__init__(x, y, 0, frames[0] if frames else None, damage=0, owner=owner, size=size) 
         
         self.base_frames = frames 
@@ -140,8 +152,11 @@ class AnimatedEffect(Projectile):
         self.initial_size = size
         self.current_size = size
         
-        self.total_duration = self.frame_duration if self.num_frames == 1 else (self.num_frames * self.frame_duration)
-        self.end_time = self.start_time + self.total_duration
+        self.loops_left = loops
+        
+        # 단일 루프의 총 지속 시간 계산
+        self.total_duration_one_loop = self.frame_duration if self.num_frames <= 1 else (self.num_frames * self.frame_duration)
+        self.end_time = self.start_time + self.total_duration_one_loop * self.loops_left # 총 수명 계산
         
         if self.img:
             try:
@@ -153,19 +168,32 @@ class AnimatedEffect(Projectile):
     def update(self, world: dict):
         current_time = pygame.time.get_ticks()
         
+        # 1. 🌟 수명 종료 체크 (가장 확실한 소멸 로직)
         if current_time > self.end_time:
             self.active = False
             return
-
+            
+        # 2. 프레임 업데이트
         if self.num_frames > 1 and current_time - self.last_frame_time >= self.frame_duration:
             self.current_frame_index += 1
             self.last_frame_time = current_time
             
+            # 2.1. 단일 루프 종료 체크
+            if self.current_frame_index >= self.num_frames:
+                self.loops_left -= 1
+                
+                # 아직 전체 수명이 끝나지 않았고 루프가 남아있다면 재시작
+                if self.loops_left > 0 or self.loops_left == -1: # -1은 무한 루프
+                    self.current_frame_index = 0
+                else:
+                    # 최종 종료는 if current_time > self.end_time 에서 처리
+                    pass 
+            
+            # 현재 프레임 이미지 갱신
             if self.current_frame_index < self.num_frames:
                 self.img = self.base_frames[self.current_frame_index]
-            else:
-                self.active = False 
-                
+            
+        # 3. 크기 조정 애니메이션
         if self.scale_factor != 0:
             elapsed_time_s = (current_time - self.start_time) / 1000
             
@@ -195,6 +223,7 @@ class AnimatedEffect(Projectile):
             
 # 이생선 궁극기를 위해 이펙트 클래스를 베이스 파일에 유지
 class UltimateBeltEffect(Projectile):
+    # ... (기존 로직 유지) ...
     def __init__(self, x, y, vx, img, damage, owner, size, duration_ms, screen_w):
         super().__init__(x, y, vx, img, damage, owner, size, vy=0, gravity=0)
         self.start_time = pygame.time.get_ticks()
