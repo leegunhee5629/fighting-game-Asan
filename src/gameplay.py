@@ -1,4 +1,5 @@
 import pygame
+import typing
 import sys
 import os
 from typing import Dict, Any, List, Tuple
@@ -206,6 +207,49 @@ def gameplay(screen, map_image_path):
             defender_state["is_frozen"] = True
             defender_state["frozen_end_time"] = current_time + duration_ms
             
+    def apply_poison_to_target(target: dict, proj) -> None:
+        """발사체에 독 속성이 있으면 target에 상태효과로 등록."""
+        if not getattr(proj, "causes_poison", False):
+            return
+        duration_ms = getattr(proj, "poison_duration", 2000)
+        poison_dps = getattr(proj, "poison_dps", 0.015)  # 초당 비율(예: 0.015 = 최대체력의 1.5%/초)
+        now = pygame.time.get_ticks()
+        target.setdefault("status_effects", [])
+        target["status_effects"].append({
+            "type": "poison",
+            "started_at": now,
+            "expires_at": now + int(duration_ms),
+            "dps": float(poison_dps),
+            "last_tick": now
+        })
+
+    def update_status_effects_for_entity(entity: dict) -> None:
+        """프레임마다 호출: entity의 status_effects를 처리하여 연속 데미지 적용."""
+        if not isinstance(entity, dict):
+            return
+        effects = entity.get("status_effects")
+        if not effects:
+            return
+        now = pygame.time.get_ticks()
+        new_effects = []
+        for eff in effects:
+            if now >= eff.get("expires_at", 0):
+                continue
+            if eff.get("type") == "poison":
+                last = eff.get("last_tick", eff.get("started_at", now))
+                elapsed_ms = now - last
+                if elapsed_ms > 0:
+                    # 초 단위로 환산하여 최대체력 비율 기반 데미지 적용
+                    elapsed_s = elapsed_ms / 1000.0
+                    max_hp = entity.get("max_hp", 100)
+                    dmg = eff.get("dps", 0.0) * max_hp * elapsed_s
+                    # 정수 데미지로 적용 (원하면 소수 유지)
+                    entity["hp"] = max(0, entity.get("hp", 0) - int(dmg))
+                    eff["last_tick"] = now
+                new_effects.append(eff)
+            else:
+                new_effects.append(eff)
+        entity["status_effects"] = new_effects
     # --- 메인 루프 ---
     while running:
         dt = clock.tick(60) # dt는 밀리초
@@ -231,8 +275,7 @@ def gameplay(screen, map_image_path):
                     p2["last_input_key"] = 'left'
                 elif event.key == pygame.K_RIGHT:
                     p2["last_input_key"] = 'right'
-            # ----------------------------------------------------
-
+            
         # --- 상태 및 물리 업데이트 ---
         for char_state in [p1, p2]:
             # 1. 상태 해제 로직

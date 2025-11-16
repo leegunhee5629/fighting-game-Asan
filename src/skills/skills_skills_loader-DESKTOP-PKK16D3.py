@@ -37,9 +37,9 @@ def get_skills_for_character(codename: str) -> List[Skill]:
         return [punch_skill, dash_skill, ultimate_skill]
     
     elif codename == "witch":
-        heal_potion_skill = HealPotionSkill(name="heal_potion", cooldown_ms=5000)
-        staff_strike_skill = StaffStrikeSkill(name="staff_strike", cooldown_ms=1500)
-        poison_potion_ultimate = PoisonPotionUltimate(name="poison_potion_ultimate", cooldown_ms=180)
+        heal_potion_skill = HealPotionSkill(name="witch_heal_potion", cooldown_ms=5000)
+        staff_strike_skill = StaffStrikeSkill(name="witch_staff_strike", cooldown_ms=1500)
+        poison_potion_ultimate = PoisonPotionUltimate(name="witch_poison_ultimate", cooldown_ms=180)
         return [heal_potion_skill, staff_strike_skill, poison_potion_ultimate]
         
     return []
