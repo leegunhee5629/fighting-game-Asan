@@ -7,7 +7,7 @@ from .leesaengseon_skills import LeesaengseonFishSkill, LeesaengseonBombSkill, L
 from .joker_skills import JokerGunTossSkill, JokerConfusionBulletSkill, JokerUltimateGasSkill
 # 🧊 아이스맨 스킬 임포트
 from .iceman_skills import IcemanPunchSkill, IcemanDashSkill, IcemanUltimateSkill
-from .witch_skills import HealPotionSkill, StaffStrikeSkill, PoisonPotionUltimate
+from .witch_skills import HealPotionSkill, PoisonPotionUltimate #StaffStrikeSkill,
 from .skills_base import Skill # 타입 힌트용
 
 def get_skills_for_character(codename: str) -> List[Skill]:
@@ -38,8 +38,8 @@ def get_skills_for_character(codename: str) -> List[Skill]:
     
     elif codename == "witch":
         heal_potion_skill = HealPotionSkill(name="heal_potion", cooldown_ms=5000)
-        staff_strike_skill = StaffStrikeSkill(name="staff_strike", cooldown_ms=1500)
+        #staff_strike_skill = StaffStrikeSkill(name="staff_strike", cooldown_ms=1500)
         poison_potion_ultimate = PoisonPotionUltimate(name="poison_potion_ultimate", cooldown_ms=180)
-        return [heal_potion_skill, staff_strike_skill, poison_potion_ultimate]
+        return [heal_potion_skill, poison_potion_ultimate]#, staff_strike_skill
         
     return []

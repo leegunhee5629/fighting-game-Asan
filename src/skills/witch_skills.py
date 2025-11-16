@@ -4,7 +4,7 @@ from .skills_base import Skill, UltimateSkillBase, Projectile, MeleeHitbox
 
 ASSET_PATH = os.path.join("assets", "characters", "witch")
 
-# 🧪 회복 물약 스킬
+#  회복 물약 스킬
 class HealPotionSkill(Skill):
     def __init__(self):
         super().__init__("Heal Potion", cooldown_ms=5000, img_path=os.path.join(ASSET_PATH, "skill1.png"))
@@ -27,8 +27,8 @@ class HealPotionSkill(Skill):
         # 회복 이펙트 (선택적)
         return []
 
-
-# 🔮 지팡이 타격 스킬
+"""
+#  지팡이 타격 스킬
 class StaffStrikeSkill(Skill):
     def __init__(self):
         super().__init__("Staff Strike", cooldown_ms=1500, img_path=os.path.join(ASSET_PATH, "skill2.png"))
@@ -46,9 +46,9 @@ class StaffStrikeSkill(Skill):
         hitbox_y = user["y"]
         hitbox = MeleeHitbox(x=hitbox_x, y=hitbox_y, damage=10, owner=owner, duration_ms=250, size=100)
         return [hitbox]
+"""
 
-
-# ☠️ 궁극기: 독 포션
+#  궁극기: 독 포션
 class PoisonPotionUltimate(UltimateSkillBase):
     def __init__(self):
         super().__init__("Poison Potion", cooldown_ms=10000, ult_cost=100, img_path=os.path.join(ASSET_PATH, "ultimate.png"))
