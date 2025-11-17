@@ -3,8 +3,21 @@ import pygame
 import copy
 from typing import Dict, Any, List, Tuple
 
-pygame.mixer.init()
+# 📢 [핵심 수정 1] pygame.mixer.init() 제거. main.py에서 초기화됩니다.
 
+# 📢 [추가] main.py에서 GAME_VOLUME을 가져와 사용합니다.
+try:
+    import main 
+    SHARED_VOLUME = main.GAME_VOLUME
+except (ImportError, AttributeError):
+    # main 모듈이 없거나 GAME_VOLUME이 없을 경우 기본값 0.5 사용
+    SHARED_VOLUME = 0.5 
+
+# 📢 Pygame 폰트 및 믹서 초기화가 main.py에서 이미 되었어야 합니다.
+# 필요한 경우, 안전을 위해 mixer만 초기화합니다. (main.py에 init이 있다면 불필요)
+if not pygame.mixer.get_init():
+    pygame.mixer.init()
+    
 # 📢 [수정]: 이 파일은 'Character' 씬의 로직과 캐릭터 데이터를 정의합니다.
 
 character_config: Dict[str, Any] = {
@@ -76,12 +89,9 @@ def characters(screen: pygame.Surface, current_scene: str) -> str | None:
     global character_config, text_1p, text_2p, start_time, process
 
     # 📢 [핵심 수정]: process == 3 상태에서 초기화되는 버그 수정
-    # 씬 진입 시 (process 0 상태)에만 초기화 및 P1 선택 단계로 전환합니다.
-    # process 3 상태는 맵 씬으로 이동할 때까지 상태를 유지해야 합니다.
     if current_scene == "Characters" and process == 0:
         character_config["selected_1p"] = None
         character_config["selected_2p"] = None
-        # start_time은 씬의 경과 시간 계산 용도로 사용하며, 초기 500ms 클릭 딜레이에도 사용됩니다.
         start_time = pygame.time.get_ticks() 
         process = 1 # P1 선택 단계로 강제 진입
 
@@ -94,17 +104,6 @@ def characters(screen: pygame.Surface, current_scene: str) -> str | None:
     else:
         screen.fill((30, 120, 60))
 
-    # BGM 재생 (씬 진입 시 1회만 실행)
-    if current_scene == "Characters" and not pygame.mixer.music.get_busy():
-        music_path = "assets/bgm/F1_starting_grid.mp3"
-        if os.path.exists(music_path):
-            try:
-                pygame.mixer.music.load(music_path)
-                pygame.mixer.music.set_volume(0)
-                pygame.mixer.music.play(-1, fade_ms=2000) # 무한 반복 (-1)
-            except Exception:
-                pass
-
     try:
         font = pygame.font.Font("assets/font/NotoSansKR-Bold.ttf", 40)
         small_font = pygame.font.Font("assets/font/NotoSansKR-Bold.ttf", 24)
@@ -113,30 +112,25 @@ def characters(screen: pygame.Surface, current_scene: str) -> str | None:
         small_font = pygame.font.Font(None, 24)
 
     # elapsed 계산
-    # process 3 진입 시 start_time이 리셋되므로, elapsed는 process 3의 카운트다운을 정확히 잽니다.
     elapsed = pygame.time.get_ticks() - start_time if start_time is not None else 0
 
     # 단계별 문구 표시 및 다음 씬 전환 로직
     blink = (pygame.time.get_ticks() // 750) % 2
 
     if process == 1: # P1 선택 중
-        # P1 선택 중에는 1P가 깜빡이고 2P는 대기 상태
         text_1p = font.render("선택 준비", True, (255, 255, 0))
         text_2p = font.render("Player 2", True, (255, 255, 255))
         if blink:
             text_1p = font.render("", True, (0, 255, 0))
     
     elif process == 2: # P2 선택 중
-        # P1의 선택은 확정되어 초록색으로 표시
         text_1p_name = get_charactername_by_codename(character_config["selected_1p"]) or "확정"
         text_1p = font.render(text_1p_name, True, (0, 255, 0))
-        # P2의 선택 준비 상태는 노란색으로 표시
         text_2p = font.render("선택 준비", True, (255, 255, 0))
         if blink:
             text_2p = font.render("", True, (0, 255, 0))
     
     elif process == 3: # 선택 완료, 맵 이동 대기
-        # P1과 P2 모두 확정된 이름이 초록색으로 표시
         text_1p_name = get_charactername_by_codename(character_config["selected_1p"]) or "오류"
         text_2p_name = get_charactername_by_codename(character_config["selected_2p"]) or "오류"
         text_1p = font.render(text_1p_name, True, (0, 255, 0))
@@ -144,8 +138,6 @@ def characters(screen: pygame.Surface, current_scene: str) -> str | None:
         
         # 선택 완료 후 딜레이 (3초 대기 후 맵 씬으로 이동)
         if elapsed > 3000:
-            # 📢 [수정] 맵 이동 직전에 process를 0으로 초기화하지 않습니다.
-            # 맵 이동 후 main 루프에서 새 씬으로 전환됩니다.
             return "Maps"
     
     else: # 예외 처리 (process 0)
@@ -183,9 +175,7 @@ def characters(screen: pygame.Surface, current_scene: str) -> str | None:
             # P2 선택 중: hover 또는 이미 선택된 것 표시
             show_codename = hover_codename or sel
         else:
-            # P1 확정 (process 2), P2 확정 (process 3): 확정된 선택만 표시
-            # 📢 [수정]: process 2일 때 P1은 확정된 선택(sel)을 보여줘야 합니다.
-            # 📢 process 3일 때 P1, P2 모두 확정된 선택(sel)을 보여줍니다.
+            # 확정된 선택만 표시
             show_codename = sel 
 
         if not show_codename:

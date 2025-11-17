@@ -52,7 +52,10 @@ IMAGE_Y_ADJUSTMENT = 60
 
 # 📢 룰렛 관련 상수 추가
 ROULETTE_SPIN_DURATION_MS = 3000  # 룰렛이 멈추는 데 걸리는 최소 시간 (3초)
-ROULETTE_MAX_SPEED = 10          # 최대 회전 속도 (각도/프레임)
+ROULETTE_MAX_SPEED = 10           # 최대 회전 속도 (각도/프레임)
+
+# 📢 [추가]: 점프 관련 상수
+MAX_JUMPS = 2 # 2단 점프 허용
 # =========================================================
 
 def gameplay(screen, map_image_path):
@@ -71,6 +74,9 @@ def gameplay(screen, map_image_path):
     # 무적 시간 설정 (0.5초)
     INVINCIBILITY_DURATION = 500 # ms
     
+    # 📢 [추가]: 볼륨 변수 초기화 (0.0 ~ 1.0)
+    global_volume = 0.5 
+    
     # 초기 설정
     try:
         background = pygame.image.load(map_image_path).convert()
@@ -79,24 +85,36 @@ def gameplay(screen, map_image_path):
         background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         background.fill((0, 0, 100))
 
+    # BGM 파일 로드 및 재생
+    try:
+        pygame.mixer.music.load(os.path.join("assets", "audio", "bgm.mp3"))
+        # 📢 BGM 볼륨 설정 시 global_volume 적용
+        pygame.mixer.music.set_volume(global_volume) 
+        pygame.mixer.music.play(-1) # -1은 무한 반복
+    except Exception as e:
+        print(f"Error loading BGM: {e}") 
+
     p1_codename = character_config.get("selected_1p", "default_p1")
     p2_codename = character_config.get("selected_2p", "default_p2")
     
     # 캐릭터 초기 상태
     initial_y = GROUND_Y - HITBOX_HEIGHT
     
+    # 📢 [수정]: jump_count 변수 추가 (2단 점프 구현용)
     p1 = {"x": 200, "y": initial_y, "vx": 0, "vy": 0, "on_ground": True, "hp": 100, "ultimate_gauge": 0, "max_hp": 100,
           "is_stunned": False, "stun_end_time": 0, "invincible_end_time": 0, 
           "is_confused": False, "confusion_end_time": 0, "speed_boost_end_time": 0, 
           "is_frozen": False, "frozen_end_time": 0, 
           "is_dashing": False, "dash_end_time": 0, "last_input_key": None,
-          "status_effects": []} 
+          "status_effects": [], "jump_count": 0} 
+          
+    # 📢 [수정]: jump_count 변수 추가 (2단 점프 구현용)
     p2 = {"x": SCREEN_WIDTH - 400, "y": initial_y, "vx": 0, "vy": 0, "on_ground": True, "hp": 100, "ultimate_gauge": 0, "max_hp": 100,
           "is_stunned": False, "stun_end_time": 0, "invincible_end_time": 0,
           "is_confused": False, "confusion_end_time": 0, "speed_boost_end_time": 0,
           "is_frozen": False, "frozen_end_time": 0,
           "is_dashing": False, "dash_end_time": 0, "last_input_key": None,
-          "status_effects": []} 
+          "status_effects": [], "jump_count": 0} 
     
     p1_skill_state = character_skill_state.get(p1_codename, {}).copy()
     p2_skill_state = character_skill_state.get(p2_codename, {}).copy()
@@ -110,11 +128,14 @@ def gameplay(screen, map_image_path):
     p2_char = Character(p2_codename, 2, p2, p2_skill_state)
 
     projectiles = []
+    # 🌟 [추가]: 룰렛 랜덤값 저장을 위한 world 초기화
     world = {
         "screen_width": SCREEN_WIDTH,
         "screen_height": SCREEN_HEIGHT,
         "GROUND_Y": GROUND_Y,
-        "projectiles": projectiles
+        "projectiles": projectiles,
+        "roulette_total_spin_time": ROULETTE_SPIN_DURATION_MS + 2000, 
+        "roulette_speed": ROULETTE_MAX_SPEED
     }
 
     # 물리 상수
@@ -130,6 +151,27 @@ def gameplay(screen, map_image_path):
         font = pygame.font.Font(None, 30)
         large_font = pygame.font.Font(None, 60)
         
+    # 📢 [수정]: 사운드 클립 로드 및 볼륨 설정
+    attack_sound = None
+    skill_sound = None
+    jump_sound = None # 📢 [추가]: 점프 사운드
+    victory_sound = None # 📢 [추가]: 승리 사운드
+    try:
+        attack_sound = pygame.mixer.Sound(os.path.join("assets", "audio", "attack.wav"))
+        skill_sound = pygame.mixer.Sound(os.path.join("assets", "audio", "skill.wav"))
+        jump_sound = pygame.mixer.Sound(os.path.join("assets", "audio", "jump.wav")) # 📢 점프 사운드 로드
+        victory_sound = pygame.mixer.Sound(os.path.join("assets", "audio", "victory.wav")) # 📢 승리 사운드 로드
+        
+        # 📢 효과음 볼륨 설정 시 global_volume 적용
+        attack_sound.set_volume(global_volume)
+        skill_sound.set_volume(global_volume)
+        jump_sound.set_volume(global_volume) # 📢 볼륨 적용
+        victory_sound.set_volume(global_volume) # 📢 볼륨 적용
+        
+    except Exception as e:
+        # 사운드 로드 실패 시 출력
+        print(f"Error loading sounds: {e}") 
+
     # 룰렛 이미지 로드 
     # 📢 [수정]: 룰렛 이미지 경로를 'assets/img'로 변경
     try:
@@ -355,6 +397,7 @@ def gameplay(screen, map_image_path):
                 if elapsed_ms >= 100: 
                     elapsed_s = elapsed_ms / 1000.0
                     max_hp = entity.get("max_hp", 100)
+                    # 독 데미지: dps * max_hp * 0.1 (100ms당)
                     dmg = eff.get("dps", 0.0) * max_hp * 0.1 
                     entity["hp"] = max(0, entity.get("hp", 0) - int(dmg))
                     eff["last_tick"] = now
@@ -384,11 +427,33 @@ def gameplay(screen, map_image_path):
                 elif event.key == pygame.K_d:
                     p1["last_input_key"] = 'd'
                 
+                # 📢 [수정]: P1 점프 (W 키)
+                elif event.key == pygame.K_w:
+                    # 📢 [수정]: 2단 점프 로직
+                    if not p1.get("is_stunned", False) and not p1.get("is_frozen", False):
+                        if p1["jump_count"] < MAX_JUMPS:
+                            p1["vy"] = jump_power
+                            p1["on_ground"] = False
+                            p1["jump_count"] += 1
+                            if jump_sound: jump_sound.play() # 📢 점프 사운드 재생
+
+                
                 # P2 입력
                 elif event.key == pygame.K_LEFT:
                     p2["last_input_key"] = 'left'
                 elif event.key == pygame.K_RIGHT:
                     p2["last_input_key"] = 'right'
+                
+                # 📢 [수정]: P2 점프 (UP 키)
+                elif event.key == pygame.K_UP:
+                    # 📢 [수정]: 2단 점프 로직
+                    if not p2.get("is_stunned", False) and not p2.get("is_frozen", False):
+                        if p2["jump_count"] < MAX_JUMPS:
+                            p2["vy"] = jump_power
+                            p2["on_ground"] = False
+                            p2["jump_count"] += 1
+                            if jump_sound: jump_sound.play() # 📢 점프 사운드 재생
+
 
             # 룰렛/종료 화면에서의 마우스 클릭 처리
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -399,13 +464,26 @@ def gameplay(screen, map_image_path):
                     if roulette_spin_button_rect.collidepoint(mouse_pos):
                         game_state = "ROULETTE_SPINNING"
                         roulette_start_time = current_time
-                        roulette_speed = ROULETTE_MAX_SPEED 
                         
+                        # 🌟 [수정 1] 최대 회전 속도에 랜덤성 부여 (80% ~ 100%)
+                        random_max_speed = ROULETTE_MAX_SPEED * random.uniform(0.8, 1.0)
+                        roulette_speed = random_max_speed 
+                        
+                        # 🌟 [수정 2] 총 회전 시간에 랜덤성 부여 (3초 ~ 5초 사이)
+                        roulette_total_spin_time = ROULETTE_SPIN_DURATION_MS + random.randint(0, 2000)
+                        
+                        # 📢 새로운 랜덤 총 회전 시간 및 속도 저장
+                        world["roulette_total_spin_time"] = roulette_total_spin_time
+                        world["roulette_speed"] = random_max_speed
+                        
+                        # target_angle은 이제 감속으로 결정되므로, 더 이상 중요하지 않습니다.
                         roulette_target_angle = 360 * random.randint(3, 7) + random.randint(0, 359)
                         
                 elif game_state == "ROULETTE_STOPPED":
                     # 📢 [수정]: '다시 시작' 버튼 클릭 시, 'Title' 씬으로 복귀
                     if restart_button_rect.collidepoint(mouse_pos):
+                        # 📢 [수정]: 룰렛 정지 후 승리 사운드가 반복 재생되는 것을 방지하기 위해 멈춥니다.
+                        if victory_sound: victory_sound.stop()
                         return "Title" 
 
         # =========================================================
@@ -482,9 +560,7 @@ def gameplay(screen, map_image_path):
                     elif keys[pygame.K_d]: p1["vx"] = p1_speed
                     else: p1["vx"] = 0
                     
-                if keys[pygame.K_w] and p1["on_ground"]:
-                    p1["vy"] = jump_power
-                    p1["on_ground"] = False
+                # 📢 [수정]: 점프 키 (K_w) 입력은 이미 KEYDOWN 이벤트에서 처리했으므로 여기선 제거
             elif not p1.get("is_dashing", False):
                 p1["vx"] = 0 
 
@@ -506,35 +582,46 @@ def gameplay(screen, map_image_path):
                     elif keys[pygame.K_RIGHT]: p2["vx"] = p2_speed
                     else: p2["vx"] = 0
                     
-                if keys[pygame.K_UP] and p2["on_ground"]:
-                    p2["vy"] = jump_power
-                    p2["on_ground"] = False
+                # 📢 [수정]: 점프 키 (K_UP) 입력은 이미 KEYDOWN 이벤트에서 처리했으므로 여기선 제거
             elif not p2.get("is_dashing", False):
                 p2["vx"] = 0 
 
 
             # --- 스킬 입력 처리 (빙결/스턴 상태 반영) ---
+            # ... (스킬 입력 로직은 기존과 동일)
             if not p1.get("is_stunned", False) and not p1.get("is_frozen", False):
                 if keys[pygame.K_e]:
                     new_projs = p1_skill1.activate(p1, p2, p1_skill_state.get("skill1", {}), world, p1_char, owner="p1")
                     projectiles.extend(new_projs)
+                    # 📢 기술1 사운드 재생 (투사체가 생성되었을 경우)
+                    if new_projs and attack_sound: attack_sound.play() 
                 if keys[pygame.K_r]:
                     new_projs = p1_skill2.activate(p1, p2, p1_skill_state.get("skill2", {}), world, p1_char, owner="p1")
                     projectiles.extend(new_projs)
+                    # 📢 기술2 사운드 재생 (투사체가 생성되었을 경우)
+                    if new_projs and attack_sound: attack_sound.play() 
                 if keys[pygame.K_s]:
                     new_projs = p1_ultimate.activate(p1, p2, p1_skill_state.get("ultimate", {}), world, p1_char, owner="p1")
                     projectiles.extend(new_projs)
+                    # 📢 궁극기 사운드 재생 (투사체가 생성되었을 경우)
+                    if new_projs and skill_sound: skill_sound.play() 
                     
             if not p2.get("is_stunned", False) and not p2.get("is_frozen", False):
                 if keys[pygame.K_RETURN]:
                     new_projs = p2_skill1.activate(p2, p1, p2_skill_state.get("skill1", {}), world, p2_char, owner="p2")
                     projectiles.extend(new_projs)
+                    # 📢 기술1 사운드 재생 (투사체가 생성되었을 경우)
+                    if new_projs and attack_sound: attack_sound.play() 
                 if keys[pygame.K_RSHIFT]:
                     new_projs = p2_skill2.activate(p2, p1, p2_skill_state.get("skill2", {}), world, p2_char, owner="p2")
                     projectiles.extend(new_projs)
+                    # 📢 기술2 사운드 재생 (투사체가 생성되었을 경우)
+                    if new_projs and attack_sound: attack_sound.play() 
                 if keys[pygame.K_DOWN]:
                     new_projs = p2_ultimate.activate(p2, p1, p2_skill_state.get("ultimate", {}), world, p2_char, owner="p2")
                     projectiles.extend(new_projs)
+                    # 📢 궁극기 사운드 재생 (투사체가 생성되었을 경우)
+                    if new_projs and skill_sound: skill_sound.play()
 
 
             # --- 스킬 지속 시간/단계 업데이트 루프 ---
@@ -573,6 +660,7 @@ def gameplay(screen, map_image_path):
                     char_state["y"] = initial_y
                     char_state["vy"] = 0
                     char_state["on_ground"] = True
+                    char_state["jump_count"] = 0 # 📢 [추가]: 땅에 닿으면 점프 카운트 초기화
                 else:
                     char_state["on_ground"] = False
 
@@ -582,6 +670,7 @@ def gameplay(screen, map_image_path):
             p2_char.update(dt, p2.get("is_invincible", False), p2.get("is_confused", False), p2.get("is_frozen", False))
 
             # 발사체 업데이트
+            # ... (발사체 업데이트 로직은 기존과 동일)
             new_projectiles = []
             explosion_effects = []
             for proj in projectiles:
@@ -636,6 +725,7 @@ def gameplay(screen, map_image_path):
             p2_rect = pygame.Rect(p2["x"] + ADJ_X_OFFSET, p2["y"] + HITBOX_Y_OFFSET_FROM_IMAGE_TOP, HITBOX_WIDTH, HITBOX_HEIGHT)
             
             # --- 충돌 처리 ---
+            # ... (충돌 처리 로직은 기존과 동일)
             for proj in projectiles:
                 proj_rect = pygame.Rect(proj.x, proj.y, proj.size, proj.size)
                 
@@ -739,7 +829,7 @@ def gameplay(screen, map_image_path):
                                     size=effect_size
                                 )
                                 projectiles.append(new_effect)
-                            
+
             # --- 렌더링 ---
             
             for proj in projectiles:
@@ -792,6 +882,9 @@ def gameplay(screen, map_image_path):
             winner_name = get_charactername_by_codename(winner_codename)
             draw_text(screen, f"{winner_name} 승리!", large_font, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
             
+            # 📢 [추가]: BGM을 멈춥니다.
+            pygame.mixer.music.stop() 
+            
             pygame.display.flip()
             pygame.time.wait(2000) 
             game_state = "ROULETTE_SETUP"
@@ -799,7 +892,6 @@ def gameplay(screen, map_image_path):
 
         # --- 3. ROULETTE_SETUP 상태 (룰렛과 '돌리기' 버튼 표시) ---
         elif game_state == "ROULETTE_SETUP":
-            draw_text(screen, "승리 보너스 룰렛!", large_font, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT * 0.2)
             draw_roulette(screen, roulette_angle, roulette_img, roulette_pin_img)
             
             # 📢 버튼 렌더링 (create_button 함수를 통해 호버 효과 적용)
@@ -811,29 +903,40 @@ def gameplay(screen, map_image_path):
             
             elapsed_time = current_time - roulette_start_time
             
-            total_spin_time = ROULETTE_SPIN_DURATION_MS + 2000 
+            # 📢 [수정]: 저장된 랜덤 총 회전 시간 사용
+            total_spin_time = world.get("roulette_total_spin_time", ROULETTE_SPIN_DURATION_MS + 2000) 
             
             if elapsed_time < total_spin_time:
-                deceleration_factor = max(0.0, 1.0 - (elapsed_time / total_spin_time))
-                roulette_speed = ROULETTE_MAX_SPEED * deceleration_factor
+                # 📢 감속 팩터 계산 시 0으로 나누는 것을 방지
+                if total_spin_time > 0:
+                    deceleration_factor = max(0.0, 1.0 - (elapsed_time / total_spin_time))
+                else:
+                    deceleration_factor = 0.0
+                
+                # 📢 초기 랜덤 최대 속도를 기준으로 현재 속도 계산
+                initial_max_speed = world.get("roulette_speed", ROULETTE_MAX_SPEED) 
+                roulette_speed = initial_max_speed * deceleration_factor
+                
+                # 📢 룰렛 각도 업데이트 
+                roulette_angle = (roulette_angle + roulette_speed * (dt / 16.66)) % 360.0
+            
             else:
                 roulette_speed = 0.0
-                # 📢 [수정]: 속도가 0이 되면 ROULETTE_STOPPED 상태로 전환
-                if roulette_speed == 0.0:
-                    game_state = "ROULETTE_STOPPED"
+                # 룰렛 정지 후 상태 전환
+                game_state = "ROULETTE_STOPPED"
             
-            # 📢 룰렛 각도 업데이트 (roulette_speed가 0이 아닐 때 회전)
-            roulette_angle = (roulette_angle + roulette_speed * (dt / 16.66)) % 360.0
-
-            draw_text(screen, "룰렛이 돌아가는 중...", font, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT * 0.2)
+            
             draw_roulette(screen, roulette_angle, roulette_img, roulette_pin_img)
         
         # --- 5. ROULETTE_STOPPED 상태 (결과 및 다시 시작 버튼 표시) ---
         elif game_state == "ROULETTE_STOPPED":
             
-            # 📢 [수정]: 구체적인 결과 텍스트 대신 '룰렛 종료' 텍스트 표시
-            draw_text(screen, "룰렛 종료", large_font, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT * 0.2)
-            
+            # 📢 [추가]: 승리 사운드가 아직 재생되지 않았다면 재생 (단, 한 번만 재생)
+            if victory_sound and not pygame.mixer.get_busy() and not getattr(victory_sound, '_played_once', False):
+                victory_sound.play()
+                setattr(victory_sound, '_played_once', True) # 사운드가 재생되었음을 표시
+
+            # 📢 룰렛 정지 표시
             draw_roulette(screen, roulette_angle, roulette_img, roulette_pin_img)
             
             # 📢 다시 시작 버튼 렌더링
@@ -842,4 +945,7 @@ def gameplay(screen, map_image_path):
         
         pygame.display.flip()
         
+    # 📢 [추가]: 게임 종료 시 사운드 재생 상태 정리
+    if victory_sound: setattr(victory_sound, '_played_once', False)
+    pygame.mixer.music.stop()
     return "Title"

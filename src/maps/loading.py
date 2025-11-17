@@ -45,7 +45,6 @@ def map_loading(screen, current_map):
     if remaining < 0.1:
         start_time = None
         end_time = None
-        pygame.mixer.music.fadeout(1000)
         # print("DEBUG: map_loading returns 'gameplay'") # 디버그용
         return "gameplay" 
 

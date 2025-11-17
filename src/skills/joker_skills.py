@@ -36,7 +36,7 @@ class JokerConfusionBullet(Projectile):
     """조커의 기술 2: 혼란 상태를 유발하는 총알"""
     def __init__(self, x: float, y: float, vx: float, img: Optional[pygame.Surface], owner: str, size: int, confusion_duration: int):
         # 혼란 총알은 데미지가 0이어야 함
-        super().__init__(x, y, vx, img, damage=0, owner=owner, size=size) 
+        super().__init__(x, y, vx, img, damage=2, owner=owner, size=size) 
         self.causes_confusion = True
         self.confusion_duration_ms = confusion_duration
         

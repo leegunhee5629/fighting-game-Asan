@@ -40,7 +40,7 @@ class IcemanPunchSkill(Skill):
         img_path = "assets/characters/iceman/skill1.png"
         super().__init__(name, cooldown_ms=cooldown_ms, img_path=img_path)
         self.hitbox_size = 150
-        self.damage = 10
+        self.damage = 8
         
     def activate(self, user: dict, target: dict, skill_state: dict, world: dict, user_obj=None, owner: str = "p1", **kwargs):
         if not self.ready(): return []

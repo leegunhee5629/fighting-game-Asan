@@ -113,7 +113,7 @@ class LeesaengseonUltimateSkill(UltimateSkillBase):
         self.duration_ms = 4000 
         self.belt_height = 240 
         self.belt_speed = 10 
-        self.damage = 25 
+        self.damage = 35 
 
         self.base_img = _safe_load_and_scale(img_path, (1920, self.belt_height)) 
 
