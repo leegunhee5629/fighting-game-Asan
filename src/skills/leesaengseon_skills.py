@@ -9,7 +9,7 @@ class LeesaengseonFishSkill(Skill):
     def __init__(self, name: str, cooldown_ms: int):
         img_path = "assets/characters/leesaengseon/skill1.png"
         super().__init__(name, cooldown_ms=cooldown_ms, img_path=img_path)
-        self.proj_size = 100
+        self.proj_size = 200
         self.damage = 3
         if self.img:
             self.img = pygame.transform.scale(self.img, (self.proj_size, self.proj_size))
@@ -37,7 +37,7 @@ class LeesaengseonBombSkill(Skill):
     def __init__(self, name: str, cooldown_ms: int):
         img_path = "assets/characters/leesaengseon/skill2.png"
         super().__init__(name, cooldown_ms=cooldown_ms, img_path=img_path)
-        self.proj_size = 80
+        self.proj_size = 140
         self.damage = 7
         self.stun_duration_ms = 1000 
         

@@ -1,5 +1,3 @@
-# skills/skills_loader.py (수정)
-
 from typing import List
 # 각 캐릭터별 스킬 클래스를 임포트합니다.
 from .haegol_skills import HaegolSwingSkill, HaegolBoneSkill, HaegolUltimateSkill
@@ -7,7 +5,8 @@ from .leesaengseon_skills import LeesaengseonFishSkill, LeesaengseonBombSkill, L
 from .joker_skills import JokerGunTossSkill, JokerConfusionBulletSkill, JokerUltimateGasSkill
 # 🧊 아이스맨 스킬 임포트
 from .iceman_skills import IcemanPunchSkill, IcemanDashSkill, IcemanUltimateSkill
-from .witch_skills import HealPotionSkill, PoisonPotionUltimate #StaffStrikeSkill,
+# .witch_skills 임포트 시 StaffStrikeSkill을 포함하여 임포트합니다.
+from .witch_skills import HealPotionSkill, PoisonPotionUltimate, StaffStrikeSkill 
 from .skills_base import Skill # 타입 힌트용
 
 def get_skills_for_character(codename: str) -> List[Skill]:
@@ -29,6 +28,7 @@ def get_skills_for_character(codename: str) -> List[Skill]:
         confusion_bullet_skill = JokerConfusionBulletSkill(name="joker_confusion_bullet", cooldown_ms=5000) 
         ultimate_gas_skill = JokerUltimateGasSkill(name="joker_ultimate_gas", cooldown_ms=180) 
         return [gun_toss_skill, confusion_bullet_skill, ultimate_gas_skill]
+    
     # 🧊 Iceman 스킬 추가
     elif codename == "iceman":
         punch_skill = IcemanPunchSkill(name="iceman_punch", cooldown_ms=500)
@@ -37,9 +37,13 @@ def get_skills_for_character(codename: str) -> List[Skill]:
         return [punch_skill, dash_skill, ultimate_skill]
     
     elif codename == "witch":
-        heal_potion_skill = HealPotionSkill(name="heal_potion", cooldown_ms=5000)
-        #staff_strike_skill = StaffStrikeSkill(name="staff_strike", cooldown_ms=1500)
-        poison_potion_ultimate = PoisonPotionUltimate(name="poison_potion_ultimate", cooldown_ms=180)
-        return [heal_potion_skill, poison_potion_ultimate]#, staff_strike_skill
+        # HealPotionSkill, StaffStrikeSkill, PoisonPotionUltimate는
+        # __init__에 인자를 받지 않도록 수정했으므로, 인자 없이 호출합니다.
+        heal_potion_skill = HealPotionSkill() 
+        staff_strike_skill = StaffStrikeSkill() 
+        poison_potion_ultimate = PoisonPotionUltimate() 
+        
+        # 활성화된 세 가지 스킬을 모두 반환합니다.
+        return [heal_potion_skill, staff_strike_skill, poison_potion_ultimate]
         
     return []
