@@ -38,7 +38,7 @@ CONFUSION_DURATION_MS = 3000
 MOVE_BOOST_PERCENTAGE = 0.5 
 
 # 📢 디버그 상수: 충돌 박스 시각화 활성화/비활성화
-DEBUG_DRAW_HITBOX = True
+DEBUG_DRAW_HITBOX = False
 
 # 📢 캐릭터 충돌 박스 조정 상수 (기존 설정 유지)
 CHAR_SIZE = 200 
@@ -101,7 +101,7 @@ def gameplay(screen, map_image_path):
     initial_y = GROUND_Y - HITBOX_HEIGHT
     
     # 📢 [수정]: jump_count 변수 추가 (2단 점프 구현용)
-    p1 = {"x": 200, "y": initial_y, "vx": 0, "vy": 0, "on_ground": True, "hp": 100, "ultimate_gauge": 0, "max_hp": 100,
+    p1 = {"x": 200, "y": initial_y, "vx": 0, "vy": 0, "on_ground": True, "hp": 200, "ultimate_gauge": 0, "max_hp": 200,
           "is_stunned": False, "stun_end_time": 0, "invincible_end_time": 0, 
           "is_confused": False, "confusion_end_time": 0, "speed_boost_end_time": 0, 
           "is_frozen": False, "frozen_end_time": 0, 
@@ -109,7 +109,7 @@ def gameplay(screen, map_image_path):
           "status_effects": [], "jump_count": 0} 
           
     # 📢 [수정]: jump_count 변수 추가 (2단 점프 구현용)
-    p2 = {"x": SCREEN_WIDTH - 400, "y": initial_y, "vx": 0, "vy": 0, "on_ground": True, "hp": 100, "ultimate_gauge": 0, "max_hp": 100,
+    p2 = {"x": SCREEN_WIDTH - 400, "y": initial_y, "vx": 0, "vy": 0, "on_ground": True, "hp": 200, "ultimate_gauge": 0, "max_hp": 200,
           "is_stunned": False, "stun_end_time": 0, "invincible_end_time": 0,
           "is_confused": False, "confusion_end_time": 0, "speed_boost_end_time": 0,
           "is_frozen": False, "frozen_end_time": 0,
@@ -398,7 +398,7 @@ def gameplay(screen, map_image_path):
                     elapsed_s = elapsed_ms / 1000.0
                     max_hp = entity.get("max_hp", 100)
                     # 독 데미지: dps * max_hp * 0.1 (100ms당)
-                    dmg = eff.get("dps", 0.0) * max_hp * 0.1 
+                    dmg = eff.get("dps", 0.0) * max_hp * 0.4
                     entity["hp"] = max(0, entity.get("hp", 0) - int(dmg))
                     eff["last_tick"] = now
                 new_effects.append(eff)
@@ -932,9 +932,6 @@ def gameplay(screen, map_image_path):
         elif game_state == "ROULETTE_STOPPED":
             
             # 📢 [추가]: 승리 사운드가 아직 재생되지 않았다면 재생 (단, 한 번만 재생)
-            if victory_sound and not pygame.mixer.get_busy() and not getattr(victory_sound, '_played_once', False):
-                victory_sound.play()
-                setattr(victory_sound, '_played_once', True) # 사운드가 재생되었음을 표시
 
             # 📢 룰렛 정지 표시
             draw_roulette(screen, roulette_angle, roulette_img, roulette_pin_img)
@@ -946,6 +943,5 @@ def gameplay(screen, map_image_path):
         pygame.display.flip()
         
     # 📢 [추가]: 게임 종료 시 사운드 재생 상태 정리
-    if victory_sound: setattr(victory_sound, '_played_once', False)
     pygame.mixer.music.stop()
     return "Title"

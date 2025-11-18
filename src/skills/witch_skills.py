@@ -253,6 +253,6 @@ class PoisonPotionUltimate(UltimateSkillBase):
         # 히트박스가 충돌 시 독 디버프를 걸도록 설정
         hitbox.causes_poison = True
         hitbox.poison_duration = 15000
-        hitbox.poison_dps = 0.001
+        hitbox.poison_dps = 0.01
 
         return [effect, hitbox]
